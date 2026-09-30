@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-import { Shield, Lock, Mail, AlertCircle, ArrowRight, UserCheck } from 'lucide-react';
+import { Shield, Lock, Mail, AlertCircle, ArrowRight, UserCheck, Sparkles } from 'lucide-react';
+import { isStandaloneDemo } from '../services/mockBackend';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -57,6 +58,15 @@ export const LoginPage: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
         <div className="bg-slate-900 py-8 px-6 sm:px-10 border border-slate-800 rounded-xl shadow-xl">
+          {isStandaloneDemo() && (
+            <div className="mb-5 bg-emerald-950/70 border border-emerald-700/60 rounded-lg p-3 text-emerald-300 text-xs flex items-center gap-2.5">
+              <Sparkles className="w-5 h-5 flex-shrink-0 text-emerald-400" />
+              <div>
+                <span className="font-semibold text-emerald-200">Interactive Web Demo Active</span>: Full simulation running directly in your browser. All features & ledger actions are functional!
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="mb-5 bg-rose-950/60 border border-rose-800/80 rounded-lg p-3 text-rose-300 text-sm flex items-start gap-2.5">
               <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-400 mt-0.5" />

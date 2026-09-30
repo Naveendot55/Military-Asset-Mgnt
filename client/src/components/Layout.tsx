@@ -13,7 +13,9 @@ import {
   X,
   Shield,
   Building2,
+  Sparkles,
 } from 'lucide-react';
+import { isStandaloneDemo } from '../services/mockBackend';
 
 export const Layout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -96,7 +98,17 @@ export const Layout: React.FC = () => {
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-800 space-y-3">
+          {isStandaloneDemo() && (
+            <div className="p-2.5 bg-emerald-950/50 border border-emerald-800/60 rounded-lg text-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400 font-medium">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Browser Demo Mode</span>
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Standalone interactive ledger</div>
+            </div>
+          )}
+
           <button
             onClick={logout}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-rose-400 hover:bg-slate-800 border border-slate-800 transition"
