@@ -24,7 +24,13 @@ export const LoginPage: React.FC = () => {
         navigate('/');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Authentication failed. Please verify credentials.');
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.message) {
+        setError(`Connection failed: ${err.message}. Ensure backend is running on port 3000.`);
+      } else {
+        setError('Authentication failed. Please verify credentials.');
+      }
     } finally {
       setLoading(false);
     }
