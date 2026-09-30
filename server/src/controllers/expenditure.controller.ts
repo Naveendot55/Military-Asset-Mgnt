@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { z } from 'zod';
-import prisma from '../config/db';
+import { InventoryTransaction } from '../models/InventoryTransaction.model';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { createExpenditureRecord } from '../services/inventory.service';
 
@@ -29,22 +29,22 @@ export const getExpenditures = async (req: AuthRequest, res: Response, next: Nex
     if (equipmentTypeId) where.equipmentTypeId = equipmentTypeId;
     if (startDate || endDate) {
       where.transactionDate = {};
-      if (startDate) where.transactionDate.gte = new Date(startDate);
-      if (endDate) where.transactionDate.lte = new Date(endDate);
+      if (startDate) where.transactionDate.$gte = new Date(startDate);
+      if (endDate) where.transactionDate.$lte = new Date(endDate);
     }
 
     const take = parseInt(limit, 10);
     const skip = (parseInt(page, 10) - 1) * take;
 
     const [total, items] = await Promise.all([
-      prisma.inventoryTransaction.count({ where }),
-      prisma.inventoryTransaction.findMany({
-        where,
-        include: { base: true, equipmentType: true, user: { select: { id: true, name: true, email: true } } },
-        orderBy: { transactionDate: 'desc' },
-        skip,
-        take,
-      }),
+      InventoryTransaction.countDocuments(where),
+      InventoryTransaction.find(where)
+        .populate('base')
+        .populate('equipmentType')
+        .populate('user', 'id name email')
+        .sort({ transactionDate: -1 })
+        .skip(skip)
+        .limit(take),
     ]);
 
     return res.json({
@@ -90,6 +90,9 @@ export const createExpenditure = async (req: AuthRequest, res: Response, next: N
       data: transaction,
     });
   } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return next(error);
+    }
     if (error.message?.includes('Insufficient') || error.message?.includes('Unable to record')) {
       return res.status(400).json({ success: false, message: error.message });
     }

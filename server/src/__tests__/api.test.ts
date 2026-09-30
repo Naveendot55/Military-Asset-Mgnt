@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../app';
-import prisma from '../config/db';
+import mongoose from 'mongoose';
+
+afterAll(async () => {
+  await mongoose.disconnect();
+});
 
 let adminToken: string;
 let alphaToken: string;

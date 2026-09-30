@@ -1,5 +1,5 @@
 import { Response, NextFunction } from 'express';
-import prisma from '../config/db';
+import { AuditLog } from '../models/AuditLog.model';
 import { AuthRequest } from '../middleware/auth.middleware';
 
 export const getAuditLogs = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -21,37 +21,18 @@ export const getAuditLogs = async (req: AuthRequest, res: Response, next: NextFu
     const skip = (parseInt(page, 10) - 1) * take;
 
     const [total, logs] = await Promise.all([
-      prisma.auditLog.count({ where }),
-      prisma.auditLog.findMany({
-        where,
-        include: {
-          user: { select: { id: true, name: true, email: true, role: true } },
-          base: { select: { id: true, name: true, code: true } },
-        },
-        orderBy: { timestamp: 'desc' },
-        skip,
-        take,
-      }),
+      AuditLog.countDocuments(where),
+      AuditLog.find(where)
+        .populate('user', 'id name email role')
+        .populate('base', 'id name code')
+        .sort({ timestamp: -1 })
+        .skip(skip)
+        .limit(take),
     ]);
-
-    const formatted = logs.map((log) => {
-      let parsedMeta: any = null;
-      if (log.metadata) {
-        try {
-          parsedMeta = JSON.parse(log.metadata);
-        } catch (e) {
-          parsedMeta = log.metadata;
-        }
-      }
-      return {
-        ...log,
-        metadata: parsedMeta,
-      };
-    });
 
     return res.json({
       success: true,
-      data: formatted,
+      data: logs,
       pagination: {
         total,
         page: parseInt(page, 10),

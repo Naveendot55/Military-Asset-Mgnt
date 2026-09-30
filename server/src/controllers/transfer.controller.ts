@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { z } from 'zod';
-import prisma from '../config/db';
+import { InventoryTransaction } from '../models/InventoryTransaction.model';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { createTransferRecord } from '../services/inventory.service';
 
@@ -19,11 +19,10 @@ export const getTransfers = async (req: AuthRequest, res: Response, next: NextFu
     let { baseId, equipmentTypeId, startDate, endDate, page = '1', limit = '20' } = req.query as any;
 
     const where: any = {
-      transactionType: 'TRANSFER_OUT', // We query TRANSFER_OUT to represent unique transfer events
+      transactionType: 'TRANSFER_OUT',
     };
 
     if (req.user?.role === 'BASE_COMMANDER') {
-      // Must involve commander's base as source or destination
       where.baseId = req.user.baseId;
     } else if (baseId) {
       where.baseId = baseId;
@@ -32,58 +31,52 @@ export const getTransfers = async (req: AuthRequest, res: Response, next: NextFu
     if (equipmentTypeId) where.equipmentTypeId = equipmentTypeId;
     if (startDate || endDate) {
       where.transactionDate = {};
-      if (startDate) where.transactionDate.gte = new Date(startDate);
-      if (endDate) where.transactionDate.lte = new Date(endDate);
+      if (startDate) where.transactionDate.$gte = new Date(startDate);
+      if (endDate) where.transactionDate.$lte = new Date(endDate);
     }
 
     const take = parseInt(limit, 10);
     const skip = (parseInt(page, 10) - 1) * take;
 
     const [total, transferOutList] = await Promise.all([
-      prisma.inventoryTransaction.count({ where }),
-      prisma.inventoryTransaction.findMany({
-        where,
-        include: {
-          base: true,
-          equipmentType: true,
-          user: { select: { id: true, name: true, email: true } },
-        },
-        orderBy: { transactionDate: 'desc' },
-        skip,
-        take,
-      }),
+      InventoryTransaction.countDocuments(where),
+      InventoryTransaction.find(where)
+        .populate('base')
+        .populate('equipmentType')
+        .populate('user', 'id name email')
+        .sort({ transactionDate: -1 })
+        .skip(skip)
+        .limit(take),
     ]);
 
-    // For each TRANSFER_OUT, find its matching TRANSFER_IN by referenceId
     const formatted = await Promise.all(
       transferOutList.map(async (tout) => {
         let destinationBaseName = 'External / Unknown';
         if (tout.referenceId) {
-          const tin = await prisma.inventoryTransaction.findFirst({
-            where: {
-              referenceId: tout.referenceId,
-              transactionType: 'TRANSFER_IN',
-              equipmentTypeId: tout.equipmentTypeId,
-            },
-            include: { base: true },
-          });
-          if (tin) {
-            destinationBaseName = tin.base.name;
+          const tin = await InventoryTransaction.findOne({
+            referenceId: tout.referenceId,
+            transactionType: 'TRANSFER_IN',
+            equipmentTypeId: tout.equipmentTypeId,
+          }).populate('base');
+
+          if (tin && (tin as any).base) {
+            destinationBaseName = (tin as any).base.name;
           }
         }
 
+        const toutObj = (tout as any).toJSON ? (tout as any).toJSON() : tout;
         return {
-          id: tout.id,
-          reference: tout.referenceId,
-          sourceBase: tout.base.name,
-          sourceBaseId: tout.baseId,
+          id: toutObj.id || tout._id.toString(),
+          reference: toutObj.referenceId,
+          sourceBase: toutObj.base?.name || 'Unknown',
+          sourceBaseId: toutObj.baseId,
           destinationBase: destinationBaseName,
-          equipment: tout.equipmentType.name,
-          category: tout.equipmentType.category,
-          quantity: tout.quantity,
-          timestamp: tout.transactionDate,
-          user: tout.user.name,
-          notes: tout.notes,
+          equipment: toutObj.equipmentType?.name || 'Unknown',
+          category: toutObj.equipmentType?.category || 'General',
+          quantity: toutObj.quantity,
+          timestamp: toutObj.transactionDate,
+          user: toutObj.user?.name || 'System',
+          notes: toutObj.notes,
           status: 'COMPLETED',
         };
       })
@@ -140,6 +133,9 @@ export const createTransfer = async (req: AuthRequest, res: Response, next: Next
       data: result,
     });
   } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return next(error);
+    }
     if (error.message?.includes('enough available inventory') || error.message?.includes('same')) {
       return res.status(400).json({
         success: false,

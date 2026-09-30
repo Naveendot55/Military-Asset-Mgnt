@@ -1,4 +1,4 @@
-import prisma from '../config/db';
+import { AuditLog } from '../models/AuditLog.model';
 
 export interface CreateAuditLogParams {
   userId?: string | null;
@@ -12,17 +12,15 @@ export interface CreateAuditLogParams {
 
 export const createAuditLog = async (params: CreateAuditLogParams) => {
   try {
-    const metaStr = params.metadata ? (typeof params.metadata === 'string' ? params.metadata : JSON.stringify(params.metadata)) : null;
-    return await prisma.auditLog.create({
-      data: {
-        userId: params.userId || null,
-        action: params.action,
-        entity: params.entity,
-        entityId: params.entityId || null,
-        baseId: params.baseId || null,
-        metadata: metaStr,
-        ipAddress: params.ipAddress || null,
-      },
+    return await AuditLog.create({
+      userId: params.userId || null,
+      action: params.action,
+      entity: params.entity,
+      entityId: params.entityId || null,
+      baseId: params.baseId || null,
+      metadata: params.metadata || null,
+      ipAddress: params.ipAddress || null,
+      timestamp: new Date(),
     });
   } catch (error) {
     console.error('Failed to create audit log:', error);

@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { z } from 'zod';
-import prisma from '../config/db';
+import { EquipmentType } from '../models/EquipmentType.model';
 import { createAuditLog } from '../services/audit.service';
 import { AuthRequest } from '../middleware/auth.middleware';
 
@@ -13,9 +13,7 @@ const equipmentSchema = z.object({
 
 export const getEquipment = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const equipment = await prisma.equipmentType.findMany({
-      orderBy: { name: 'asc' },
-    });
+    const equipment = await EquipmentType.find().sort({ name: 1 });
     return res.json({ success: true, data: equipment });
   } catch (error) {
     next(error);
@@ -26,13 +24,13 @@ export const createEquipment = async (req: AuthRequest, res: Response, next: Nex
   try {
     const data = equipmentSchema.parse(req.body);
 
-    const item = await prisma.equipmentType.create({ data });
+    const item = await EquipmentType.create(data);
 
     await createAuditLog({
       userId: req.user.id,
       action: 'EQUIPMENT_CREATED',
       entity: 'EquipmentType',
-      entityId: item.id,
+      entityId: item._id.toString(),
       metadata: data,
       ipAddress: req.ip,
     });

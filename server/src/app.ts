@@ -15,7 +15,11 @@ import expenditureRoutes from './routes/expenditure.routes';
 import auditRoutes from './routes/audit.routes';
 import { errorHandler } from './middleware/error.middleware';
 
+import { connectDB } from './config/db';
+
 dotenv.config();
+
+connectDB();
 
 const app = express();
 

@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { z } from 'zod';
-import prisma from '../config/db';
+import { Base } from '../models/Base.model';
 import { createAuditLog } from '../services/audit.service';
 import { AuthRequest } from '../middleware/auth.middleware';
 
@@ -12,9 +12,7 @@ const baseSchema = z.object({
 
 export const getBases = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const bases = await prisma.base.findMany({
-      orderBy: { name: 'asc' },
-    });
+    const bases = await Base.find().sort({ name: 1 });
     return res.json({ success: true, data: bases });
   } catch (error) {
     next(error);
@@ -25,19 +23,19 @@ export const createBase = async (req: AuthRequest, res: Response, next: NextFunc
   try {
     const data = baseSchema.parse(req.body);
 
-    const existing = await prisma.base.findUnique({ where: { code: data.code } });
+    const existing = await Base.findOne({ code: data.code });
     if (existing) {
       return res.status(409).json({ success: false, message: 'Base code already exists' });
     }
 
-    const base = await prisma.base.create({ data });
+    const base = await Base.create(data);
 
     await createAuditLog({
       userId: req.user.id,
       action: 'BASE_CREATED',
       entity: 'Base',
-      entityId: base.id,
-      baseId: base.id,
+      entityId: base._id.toString(),
+      baseId: base._id.toString(),
       metadata: data,
       ipAddress: req.ip,
     });
