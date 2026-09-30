@@ -1,6 +1,11 @@
 # Military Asset Management System
 
-A production-grade, full-stack military logistics ledger and asset tracking platform built with **React**, **Node.js/Express**, **TypeScript**, **MongoDB**, and **Prisma ORM**.
+[![Deploy to GitHub Pages](https://github.com/Naveendot55/Military-Asset-Mgnt/actions/workflows/deploy.yml/badge.svg)](https://github.com/Naveendot55/Military-Asset-Mgnt/actions/workflows/deploy.yml)
+
+- 🌐 **Live Application URL**: [https://naveendot55.github.io/Military-Asset-Mgnt/](https://naveendot55.github.io/Military-Asset-Mgnt/)
+- 💻 **GitHub Repository**: [https://github.com/Naveendot55/Military-Asset-Mgnt](https://github.com/Naveendot55/Military-Asset-Mgnt)
+
+A production-grade, full-stack military logistics ledger and asset tracking platform built with **React**, **Node.js/Express**, **TypeScript**, and **MongoDB**.
 
 ---
 

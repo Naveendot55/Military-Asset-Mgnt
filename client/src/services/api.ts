@@ -23,7 +23,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      if (window.location.pathname !== '/login') {
+      if (window.location.hash) {
+        if (!window.location.hash.includes('/login')) {
+          window.location.hash = '#/login';
+        }
+      } else if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }
