@@ -337,6 +337,18 @@ export async function handleMockRequest(method: string, url: string, data?: any)
     if (baseId) filtered = filtered.filter((t) => t.baseId === baseId);
     if (equipmentTypeId) filtered = filtered.filter((t) => t.equipmentTypeId === equipmentTypeId);
 
+    let purchases = 0;
+    let transferIn = 0;
+    let transferOut = 0;
+
+    for (const t of filtered) {
+      if (t.transactionType === 'PURCHASE') purchases += t.quantity;
+      if (t.transactionType === 'TRANSFER_IN') transferIn += t.quantity;
+      if (t.transactionType === 'TRANSFER_OUT') transferOut += t.quantity;
+    }
+
+    const netMovement = purchases + transferIn - transferOut;
+
     const populated = filtered.map((t) => ({
       ...t,
       base: state.bases.find((b) => b.id === t.baseId),
@@ -345,7 +357,13 @@ export async function handleMockRequest(method: string, url: string, data?: any)
 
     return {
       success: true,
-      data: { transactions: populated },
+      data: {
+        purchases,
+        transferIn,
+        transferOut,
+        netMovement,
+        transactions: populated,
+      },
     };
   }
 

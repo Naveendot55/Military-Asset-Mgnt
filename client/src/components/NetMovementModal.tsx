@@ -97,7 +97,7 @@ export const NetMovementModal: React.FC<NetMovementModalProps> = ({
                   </div>
                 </div>
                 <div className="text-emerald-400 font-bold text-base">
-                  +{data.purchases.toLocaleString()}
+                  +{(data.purchases ?? 0).toLocaleString()}
                 </div>
               </div>
 
@@ -113,7 +113,7 @@ export const NetMovementModal: React.FC<NetMovementModalProps> = ({
                   </div>
                 </div>
                 <div className="text-sky-400 font-bold text-base">
-                  +{data.transferIn.toLocaleString()}
+                  +{(data.transferIn ?? 0).toLocaleString()}
                 </div>
               </div>
 
@@ -129,7 +129,7 @@ export const NetMovementModal: React.FC<NetMovementModalProps> = ({
                   </div>
                 </div>
                 <div className="text-amber-400 font-bold text-base">
-                  -{data.transferOut.toLocaleString()}
+                  -{(data.transferOut ?? 0).toLocaleString()}
                 </div>
               </div>
             </div>
@@ -146,10 +146,10 @@ export const NetMovementModal: React.FC<NetMovementModalProps> = ({
               </div>
               <div
                 className={`text-2xl font-black ${
-                  data.netMovement >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                  (data.netMovement ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
                 }`}
               >
-                {data.netMovement >= 0 ? `+${data.netMovement}` : data.netMovement}
+                {(data.netMovement ?? 0) >= 0 ? `+${data.netMovement ?? 0}` : data.netMovement}
               </div>
             </div>
           </div>
