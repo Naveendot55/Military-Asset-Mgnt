@@ -8,6 +8,7 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 4000,
 });
 
 axiosInstance.interceptors.request.use((config) => {
@@ -45,8 +46,8 @@ export const api = {
     try {
       return await axiosInstance.get<T>(url, config);
     } catch (err: any) {
-      if (!err.response && typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-        console.warn('Network unreachable on remote host, falling back to in-browser demo store');
+      if (!err.response) {
+        console.warn('Backend server unreachable, falling back to in-browser demo store');
         const data = await handleMockRequest('get', url);
         return { data, status: 200, statusText: 'OK', headers: {}, config: config || {} } as AxiosResponse<T>;
       }
@@ -62,8 +63,8 @@ export const api = {
     try {
       return await axiosInstance.post<T>(url, data, config);
     } catch (err: any) {
-      if (!err.response && typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-        console.warn('Network unreachable on remote host, falling back to in-browser demo store');
+      if (!err.response) {
+        console.warn('Backend server unreachable, falling back to in-browser demo store');
         const resData = await handleMockRequest('post', url, data);
         return { data: resData, status: 200, statusText: 'OK', headers: {}, config: config || {} } as AxiosResponse<T>;
       }
@@ -76,7 +77,15 @@ export const api = {
       const resData = await handleMockRequest('delete', url);
       return { data: resData, status: 200, statusText: 'OK', headers: {}, config: config || {} } as AxiosResponse<T>;
     }
-    return axiosInstance.delete<T>(url, config);
+    try {
+      return await axiosInstance.delete<T>(url, config);
+    } catch (err: any) {
+      if (!err.response) {
+        const resData = await handleMockRequest('delete', url);
+        return { data: resData, status: 200, statusText: 'OK', headers: {}, config: config || {} } as AxiosResponse<T>;
+      }
+      throw err;
+    }
   },
 
   put: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
@@ -84,7 +93,15 @@ export const api = {
       const resData = await handleMockRequest('put', url, data);
       return { data: resData, status: 200, statusText: 'OK', headers: {}, config: config || {} } as AxiosResponse<T>;
     }
-    return axiosInstance.put<T>(url, data, config);
+    try {
+      return await axiosInstance.put<T>(url, data, config);
+    } catch (err: any) {
+      if (!err.response) {
+        const resData = await handleMockRequest('put', url, data);
+        return { data: resData, status: 200, statusText: 'OK', headers: {}, config: config || {} } as AxiosResponse<T>;
+      }
+      throw err;
+    }
   },
 };
 

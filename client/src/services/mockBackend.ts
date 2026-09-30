@@ -217,12 +217,12 @@ export async function handleMockRequest(method: string, url: string, data?: any)
 
   // 3. GET /bases
   if (cleanUrl === '/bases') {
-    return { success: true, data: { bases: state.bases } };
+    return { success: true, data: state.bases };
   }
 
   // 4. GET /equipment
   if (cleanUrl === '/equipment') {
-    return { success: true, data: { equipment: state.equipment } };
+    return { success: true, data: state.equipment };
   }
 
   // 5. GET /dashboard
@@ -402,10 +402,8 @@ export async function handleMockRequest(method: string, url: string, data?: any)
 
     return {
       success: true,
-      data: {
-        purchases: populated,
-        pagination: { total: populated.length, page: 1, limit: 50, pages: 1 },
-      },
+      data: populated,
+      pagination: { total: populated.length, page: 1, limit: 50, totalPages: 1 },
     };
   }
 
@@ -465,23 +463,38 @@ export async function handleMockRequest(method: string, url: string, data?: any)
     }
 
     // GET /transfers
-    let items = state.transactions.filter((t) => ['TRANSFER_OUT', 'TRANSFER_IN'].includes(t.transactionType));
+    const transferOutList = state.transactions.filter((t) => t.transactionType === 'TRANSFER_OUT');
+    let filtered = transferOutList;
     const baseId = searchParams.get('baseId');
-    if (baseId) items = items.filter((t) => t.baseId === baseId);
+    if (baseId) filtered = filtered.filter((t) => t.baseId === baseId);
 
-    const populated = items.map((t) => ({
-      ...t,
-      base: state.bases.find((b) => b.id === t.baseId),
-      equipmentType: state.equipment.find((e) => e.id === t.equipmentTypeId),
-      user: INITIAL_USERS.find((u) => u.id === t.createdBy),
-    }));
+    const formatted = filtered.map((tout) => {
+      const tin = state.transactions.find((t) => t.transactionType === 'TRANSFER_IN' && t.referenceId === tout.referenceId);
+      const sBase = state.bases.find((b) => b.id === tout.baseId);
+      const dBase = tin ? state.bases.find((b) => b.id === tin.baseId) : null;
+      const eq = state.equipment.find((e) => e.id === tout.equipmentTypeId);
+      const u = INITIAL_USERS.find((usr) => usr.id === tout.createdBy);
+
+      return {
+        id: tout.id,
+        reference: tout.referenceId,
+        sourceBase: sBase?.name || 'Alpha Base',
+        sourceBaseId: tout.baseId,
+        destinationBase: dBase?.name || 'Bravo Base',
+        equipment: eq?.name || 'Assault Rifle',
+        category: eq?.category || 'Weapons',
+        quantity: tout.quantity,
+        timestamp: tout.transactionDate,
+        user: u?.name || 'System',
+        notes: tout.notes,
+        status: 'COMPLETED',
+      };
+    });
 
     return {
       success: true,
-      data: {
-        transfers: populated,
-        pagination: { total: populated.length, page: 1, limit: 50, pages: 1 },
-      },
+      data: formatted,
+      pagination: { total: formatted.length, page: 1, limit: 50, totalPages: 1 },
     };
   }
 
@@ -537,10 +550,8 @@ export async function handleMockRequest(method: string, url: string, data?: any)
 
     return {
       success: true,
-      data: {
-        assignments: populated,
-        pagination: { total: populated.length, page: 1, limit: 50, pages: 1 },
-      },
+      data: populated,
+      pagination: { total: populated.length, page: 1, limit: 50, totalPages: 1 },
     };
   }
 
@@ -596,10 +607,8 @@ export async function handleMockRequest(method: string, url: string, data?: any)
 
     return {
       success: true,
-      data: {
-        expenditures: populated,
-        pagination: { total: populated.length, page: 1, limit: 50, pages: 1 },
-      },
+      data: populated,
+      pagination: { total: populated.length, page: 1, limit: 50, totalPages: 1 },
     };
   }
 
@@ -613,10 +622,8 @@ export async function handleMockRequest(method: string, url: string, data?: any)
 
     return {
       success: true,
-      data: {
-        logs: populated,
-        pagination: { total: populated.length, page: 1, limit: 50, pages: 1 },
-      },
+      data: populated,
+      pagination: { total: populated.length, page: 1, limit: 50, totalPages: 1 },
     };
   }
 
