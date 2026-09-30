@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String
+  baseId       String?  @db.ObjectId
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  base         Base?    @relation(fields: [baseId], references: [id])
+  transactions InventoryTransaction[]
+  auditLogs    AuditLog[]
+}
+
+model Base {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  code      String   @unique
+  location  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users            User[]
+  transactions     InventoryTransaction[]
+  auditLogs        AuditLog[]
+}
+
+model EquipmentType {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  category    String
+  unit        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  transactions InventoryTransaction[]
+}
+
+model InventoryTransaction {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  baseId          String          @db.ObjectId
+  equipmentTypeId String          @db.ObjectId
+  transactionType String
+  quantity        Int
+  referenceId     String?
+  transactionDate DateTime
+  createdBy       String          @db.ObjectId
+  notes           String?
+  createdAt       DateTime        @default(now())
+
+  base          Base          @relation(fields: [baseId], references: [id])
+  equipmentType EquipmentType @relation(fields: [equipmentTypeId], references: [id])
+  user          User          @relation(fields: [createdBy], references: [id])
+  
+  @@index([baseId])
+  @@index([equipmentTypeId])
+  @@index([transactionType])
+  @@index([transactionDate])
+}
+
+model AuditLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?  @db.ObjectId
+  action    String
+  entity    String
+  entityId  String?
+  baseId    String?  @db.ObjectId
+  metadata  String?
+  ipAddress String?
+  timestamp DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+  base Base? @relation(fields: [baseId], references: [id])
+  
+  @@index([userId])
+  @@index([baseId])
+  @@index([action])
+  @@index([timestamp])
+}

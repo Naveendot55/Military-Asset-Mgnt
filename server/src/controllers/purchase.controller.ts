@@ -1,0 +1,101 @@
+import { Response, NextFunction } from 'express';
+import { z } from 'zod';
+import prisma from '../config/db';
+import { AuthRequest } from '../middleware/auth.middleware';
+import { createPurchaseRecord } from '../services/inventory.service';
+
+const purchaseSchema = z.object({
+  baseId: z.string().min(1, 'Base is required'),
+  equipmentTypeId: z.string().min(1, 'Equipment type is required'),
+  quantity: z.number().int().positive('Quantity must be an integer greater than 0'),
+  purchaseDate: z.string().optional(),
+  supplier: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const getPurchases = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    let { baseId, equipmentTypeId, startDate, endDate, page = '1', limit = '20' } = req.query as any;
+
+    if (req.user?.role === 'BASE_COMMANDER') {
+      if (baseId && baseId !== req.user.baseId) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Cannot access another base purchases' });
+      }
+      baseId = req.user.baseId;
+    }
+
+    const where: any = { transactionType: 'PURCHASE' };
+    if (baseId) where.baseId = baseId;
+    if (equipmentTypeId) where.equipmentTypeId = equipmentTypeId;
+    if (startDate || endDate) {
+      where.transactionDate = {};
+      if (startDate) where.transactionDate.gte = new Date(startDate);
+      if (endDate) where.transactionDate.lte = new Date(endDate);
+    }
+
+    const take = parseInt(limit, 10);
+    const skip = (parseInt(page, 10) - 1) * take;
+
+    const [total, items] = await Promise.all([
+      prisma.inventoryTransaction.count({ where }),
+      prisma.inventoryTransaction.findMany({
+        where,
+        include: { base: true, equipmentType: true, user: { select: { id: true, name: true, email: true } } },
+        orderBy: { transactionDate: 'desc' },
+        skip,
+        take,
+      }),
+    ]);
+
+    return res.json({
+      success: true,
+      data: items,
+      pagination: {
+        total,
+        page: parseInt(page, 10),
+        limit: take,
+        totalPages: Math.ceil(total / take),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createPurchase = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const data = purchaseSchema.parse(req.body);
+
+    if (req.user?.role === 'BASE_COMMANDER' && data.baseId !== req.user.baseId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: You cannot create purchases for another base.',
+      });
+    }
+
+    const transaction = await createPurchaseRecord({
+      baseId: data.baseId,
+      equipmentTypeId: data.equipmentTypeId,
+      quantity: data.quantity,
+      purchaseDate: data.purchaseDate || new Date().toISOString(),
+      supplier: data.supplier,
+      notes: data.notes,
+      userId: req.user.id,
+      ipAddress: req.ip,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Purchase created successfully',
+      data: transaction,
+    });
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return next(error);
+    }
+    if (error.message?.includes('not found') || error.message?.includes('Quantity')) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    next(error);
+  }
+};
